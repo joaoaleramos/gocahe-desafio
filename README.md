@@ -9,7 +9,7 @@ First you will have to execute a `curl` after start the application by running t
 1. `make docker-run`
 2. `make watch`
 
-If those commands you will be able to run the start the application itself, now to block some IPs you can execute the following curl request:
+With those commands you will be able to run the application itself, now to block some IPs you can execute the following curl request:
 
 ```bash
 curl -X POST http://localhost:8080/blockips \
@@ -21,7 +21,7 @@ This command will block those IPs, now to test if the request will be blocked or
 
 `make test-ip-success`
 
-and another one below for error:
+and another one below for with thr blocked ip for error:
 
 `make test-ip-error`
 
