@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -13,17 +15,19 @@ import (
 )
 
 type Server struct {
-	port int
-
-	db database.Service
+	port  int
+	db    database.Service
+	proxy *httputil.ReverseProxy
 }
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	NewServer := &Server{
-		port: port,
+	targetURL, _ := url.Parse("https://www.google.com") // URL do servidor de destino
 
-		db: database.New(),
+	NewServer := &Server{
+		port:  port,
+		db:    database.New(),
+		proxy: httputil.NewSingleHostReverseProxy(targetURL), // Inicializa o proxy reverso
 	}
 
 	// Declare Server config

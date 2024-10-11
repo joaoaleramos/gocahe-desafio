@@ -31,28 +31,34 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 // Proxy handler to deal with requests and block IPs if necessary
 func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
+	// Extrair IP do cliente
 
-	// Extract client IP
-	clientIP := util.GetClientIP(r.Header.Get("X-Forwarded-For"))
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
 
+	}
+	clientIP := util.GetClientIP(ip)
+
+	// Verificar se o IP está bloqueado
 	if util.IsIPBlocked(clientIP, s.db.GetCollection()) {
 		http.Error(w, "Forbidden: IP blocked", http.StatusForbidden)
 		return
 	}
 
-	// Verify subdomain and update ip format if necessary
+	// Verificar subdomínio e atualizar formato do IP se necessário
 	hostParts := strings.Split(r.Host, ".")
 	if len(hostParts) > 0 && hostParts[0] == "www" {
 		r.URL.Path = "/site/www" + r.URL.Path
 	}
 
-	// Validate query string
+	// Validar query string
 	if util.IsPayloadInvalid(r.URL.RawQuery) || util.IsPayloadInvalid(r.Form.Encode()) {
 		http.Error(w, "Forbidden: Invalid content", http.StatusForbidden)
 		return
 	}
 
-	// Check Paylod if http method is POST
+	// Checar payload se o método HTTP for POST
 	if r.Method == http.MethodPost {
 		var payload map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&payload); err == nil {
@@ -61,23 +67,10 @@ func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-
 	}
 
-	// Send the response after validation
-	resp := map[string]string{
-		"message": "Request processed successfully",
-	}
-	w.Header().Set("Content-Type", "application/json")
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, "Error while processing request", http.StatusInternalServerError)
-		log.Printf("Error serializing JSON: %v", err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(jsonResp)
+	// Redirecionar a requisição para o servidor de destino
+	s.proxy.ServeHTTP(w, r)
 }
 
 // Block IPs handler
