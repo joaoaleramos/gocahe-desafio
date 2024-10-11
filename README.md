@@ -21,7 +21,7 @@ This command will block those IPs, now to test if the request will be blocked or
 
 `make test-ip-success`
 
-and another one below for success:
+and another one below for error:
 
 `make test-ip-error`
 
