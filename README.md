@@ -68,6 +68,16 @@ Live reload the application:
 make watch
 ```
 
+Run ip test success:
+```bash
+make test-ip-success
+```
+Run ip test error:
+```bash
+make test-ip-error
+```
+
+
 Run the test suite:
 ```bash
 make test
