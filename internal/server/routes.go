@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var blockRegex = regexp.MustCompile(`<(?:a|abbr|acronym|address|applet|area|audioscope|b|base|basefront|bdo|bgsound|big|blackface|blink|blockquote|body|bq|br|button|caption|center|cite|code|col|colgroup|comment|dd|del|dfn|dir|div|dl|dt|em|embed|fieldset|fn|font|form|frame|frameset|h1|head|hr|html|i|iframe|ilayer|img|input|ins|isindex|kdb|keygen|label|layer|legend|li|limittext|link|listing|map|marquee|menu|meta|multicol|nobr|noembed|noframes|noscript|nosmartquotes|object|ol|optgroup|option|p|param|plaintext|pre|q|rt|ruby|s|samp|script|select|server|shadow|sidebar|small|spacer|span|strike|strong|style|sub|sup|table|tbody|td|textarea|tfoot|th|thead|title|tr|tt|u|ul|var|wbr|xml|xmp)\\W`)
+var blockRegex = regexp.MustCompile(`(?i)<(?:a|abbr|acronym|address|applet|area|audioscope|b|base|basefront|bdo|bgsound|big|blackface|blink|blockquote|body|bq|br|button|caption|center|cite|code|col|colgroup|comment|dd|del|dfn|dir|div|dl|dt|em|embed|fieldset|fn|font|form|frame|frameset|h1|head|hr|html|i|iframe|ilayer|img|input|ins|isindex|kdb|keygen|label|layer|legend|li|limittext|link|listing|map|marquee|menu|meta|multicol|nobr|noembed|noframes|noscript|nosmartquotes|object|ol|optgroup|option|p|param|plaintext|pre|q|rt|ruby|s|samp|script|select|server|shadow|sidebar|small|spacer|span|strike|strong|style|sub|sup|table|tbody|td|textarea|tfoot|th|thead|title|tr|tt|u|ul|var|wbr|xml|xmp)`)
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := mux.NewRouter()
@@ -33,6 +33,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	// Extrair IP do cliente
 
+	log.Println(r.Method)
 	ip := r.Header.Get("X-Forwarded-For")
 	if ip == "" {
 		ip = r.RemoteAddr
@@ -58,17 +59,27 @@ func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Checar payload se o método HTTP for POST
 	if r.Method == http.MethodPost {
 		var payload map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&payload); err == nil {
-			if blockRegex.MatchString(payload["data"].(string)) { // Supondo que o payload tem um campo "data"
-				http.Error(w, "Forbidden: Invalid payload", http.StatusForbidden)
-				return
-			}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			log.Printf("Error decoding JSON: %v", err)
+			http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+			return
+		}
+
+		data, ok := payload["data"].(string)
+		log.Println(ok)
+		if !ok {
+			log.Println("Payload does not contain 'data' field or is not a string")
+			http.Error(w, "Forbidden: Invalid payload format", http.StatusForbidden)
+			return
+		}
+		if blockRegex.MatchString(data) {
+			log.Printf("Blocked payload content: %s", data)
+			http.Error(w, "Forbidden: Invalid payload", http.StatusForbidden)
+			return
 		}
 	}
-
 	// Redirecionar a requisição para o servidor de destino
 	s.proxy.ServeHTTP(w, r)
 }
