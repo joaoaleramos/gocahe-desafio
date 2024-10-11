@@ -32,6 +32,14 @@ Or you can set do it manually by running the following commands:
 
 and depending on you request the response you be different.
 
+Now if you want to test the regex response with a payload that will be blocked here it is the `curl command`:
+
+```bash
+curl -X POST "http://localhost:8080/" \
+  -H "Content-Type: application/json"\
+  -d '{"data": "<div>Test</div>"}' 
+```
+
 ## MakeFile
 
 Run build make command with tests
