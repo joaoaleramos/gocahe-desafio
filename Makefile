@@ -21,6 +21,16 @@ docker-run:
 		docker-compose up; \
 	fi
 
+test-ip-success:
+
+	@chmod +x  make-post-ip.sh
+	@./make-post-ip.sh 192.168.1.2
+
+
+test-ip-error:
+
+	@chmod +x  make-post-ip.sh
+	@./make-post-ip.sh 192.168.1.1
 # Shutdown DB container
 docker-down:
 	@if docker compose down 2>/dev/null; then \

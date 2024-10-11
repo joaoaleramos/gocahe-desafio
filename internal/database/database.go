@@ -14,15 +14,18 @@ import (
 
 type Service interface {
 	Health() map[string]string
+	GetCollection() *mongo.Collection
 }
 
 type service struct {
-	db *mongo.Client
+	db         *mongo.Client
+	collection *mongo.Collection
 }
 
 var (
-	host = os.Getenv("DB_HOST")
-	port = os.Getenv("DB_PORT")
+	host   = os.Getenv("DB_HOST")
+	port   = os.Getenv("DB_PORT")
+	dbName = os.Getenv("DB_DATABASE")
 	//database = os.Getenv("DB_DATABASE")
 )
 
@@ -33,9 +36,16 @@ func New() Service {
 		log.Fatal(err)
 
 	}
+	collection := client.Database(dbName).Collection("blocked_ips")
 	return &service{
-		db: client,
+		db:         client,
+		collection: collection,
 	}
+}
+
+// Method to return blocked IPs collection
+func (s *service) GetCollection() *mongo.Collection {
+	return s.collection
 }
 
 func (s *service) Health() map[string]string {
