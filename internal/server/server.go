@@ -22,15 +22,15 @@ type Server struct {
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	targetURL, _ := url.Parse("https://www.google.com") // URL do servidor de destino
+	targetURL, _ := url.Parse("https://www.google.com") // Target server URL
 
 	NewServer := &Server{
 		port:  port,
 		db:    database.New(),
-		proxy: httputil.NewSingleHostReverseProxy(targetURL), // Inicializa o proxy reverso
+		proxy: httputil.NewSingleHostReverseProxy(targetURL), // Initialize the reverse proxy
 	}
 
-	// Declare Server config
+	// Declare server configuration
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
 		Handler:      NewServer.RegisterRoutes(),

@@ -19,10 +19,10 @@ var blockRegex = regexp.MustCompile(`(?i)<(?:a|abbr|acronym|address|applet|area|
 func (s *Server) RegisterRoutes() http.Handler {
 	r := mux.NewRouter()
 
-	// Definir rota principal com lógica de manipulação
+	// Define the main route with handling logic
 	r.HandleFunc("/", s.proxyHandler).Methods("GET", "POST")
 
-	// Definir rota de health
+	// Define health check route
 	r.HandleFunc("/health", s.healthHandler).Methods("GET")
 	r.HandleFunc("/blockips", s.blockIPHandler).Methods("POST")
 
@@ -31,29 +31,27 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 // Proxy handler to deal with requests and block IPs if necessary
 func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
-	// Extrair IP do cliente
-
+	// Extract client IP
 	log.Println(r.Method)
 	ip := r.Header.Get("X-Forwarded-For")
 	if ip == "" {
 		ip = r.RemoteAddr
-
 	}
 	clientIP := util.GetClientIP(ip)
 
-	// Verificar se o IP está bloqueado
+	// Check if the IP is blocked
 	if util.IsIPBlocked(clientIP, s.db.GetCollection()) {
 		http.Error(w, "Forbidden: IP blocked", http.StatusForbidden)
 		return
 	}
 
-	// Verificar subdomínio e atualizar formato do IP se necessário
+	// Check subdomain and update IP format if necessary
 	hostParts := strings.Split(r.Host, ".")
 	if len(hostParts) > 0 && hostParts[0] == "www" {
 		r.URL.Path = "/site/www" + r.URL.Path
 	}
 
-	// Validar query string
+	// Validate query string
 	if util.IsPayloadInvalid(r.URL.RawQuery) || util.IsPayloadInvalid(r.Form.Encode()) {
 		http.Error(w, "Forbidden: Invalid content", http.StatusForbidden)
 		return
@@ -80,7 +78,7 @@ func (s *Server) proxyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// Redirecionar a requisição para o servidor de destino
+	// Redirect the request to the target server
 	s.proxy.ServeHTTP(w, r)
 }
 
@@ -106,7 +104,7 @@ func (s *Server) blockIPHandler(w http.ResponseWriter, r *http.Request) {
 
 	collection := s.db.GetCollection()
 
-	// Insert IPs inside mongo
+	// Insert IPs into MongoDB
 	_, err = collection.InsertMany(ctx, documents)
 	if err != nil {
 		log.Printf("Error inserting IPs: %v", err)
@@ -115,15 +113,15 @@ func (s *Server) blockIPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("IPs blocked with success"))
+	w.Write([]byte("IPs blocked successfully"))
 }
 
-// Check database Health Status
+// Check database health status
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := json.Marshal(s.db.Health())
 
 	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
+		log.Fatalf("Error handling JSON marshal. Err: %v", err)
 	}
 
 	_, _ = w.Write(jsonResp)
